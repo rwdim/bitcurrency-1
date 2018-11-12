@@ -8,15 +8,25 @@
 
 CXX=llvm-g++
 DEPSDIR=/opt/local
+BREWPATH=/usr/local/opt
 
 INCLUDEPATHS= \
  -I"$(CURDIR)" \
  -I"$(CURDIR)"/obj \
+ -I"$(BREWPATH)/openssl/include" \
+ -I"$(BREWPATH)/miniupnpc/include" \
+ -I"$(BREWPATH)/boost@1.60/include" \
+ -I"$(BREWPATH)/berkeley-db@4/include" \
  -I"$(DEPSDIR)/include" \
  -I"$(DEPSDIR)/include/db48"
 
 LIBPATHS= \
  -L"$(DEPSDIR)/lib" \
+ -L"$(BREWPATH)/openssl/lib" \
+ -L"$(BREWPATH)/miniupnpc/lib" \
+ -L"$(BREWPATH)/boost@1.60/lib" \
+ -L"$(BREWPATH)/berkeley-db@4/lib" \
+ -L"$(BREWPATH)/libsodium/lib" \
  -L"$(DEPSDIR)/lib/db48"
 
 USE_UPNP:=1
@@ -55,7 +65,7 @@ ifdef RELEASE
 # Compile for maximum compatibility and smallest size.
 # This requires that dependencies are compiled
 # the same way.
-CFLAGS = -mmacosx-version-min=10.5 -arch x86_64 -O2 -msse2
+CFLAGS = -mmacosx-version-min=10.14 -arch x86_64 -O2 -msse2
 else
 CFLAGS = -g -msse2
 endif
