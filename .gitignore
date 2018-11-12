@@ -3,8 +3,12 @@ release/
 build
 go
 build_bc
+.DS_Store
 
 # Binaries
+BitCurrency-OSX.dmg
+BitCurrency-Qt.app
+BitCurrency-Qt.exe
 bitcurrencyd
 bitcurrency-qt
 
