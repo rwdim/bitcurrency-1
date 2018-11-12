@@ -1,0 +1,66 @@
+#!/bin/bash
+
+rm -rf BitCurrency-Qt.app
+rm -f BitCurrency.dmg
+rm -f src/bitcurrencyd
+
+BREW=`which brew`
+if [ "${BREW}" == "" ]; then
+  echo "Brew is not installed. Please install brew."
+  exit -1
+fi
+
+brew install qt boost@1.60 berkeley-db@4 openssl miniupnpc libsodium
+
+if [ ! -e "/usr/local/opt/qt/bin/qmake" ]; then
+  echo "QT Qmake is not instaled where it should be. Please check the brew logs and reinstall it."
+  exit -1
+fi
+
+# --------------------
+# Build our makefiles
+# --------------------
+/usr/local/opt/qt/bin/qmake "RELEASE=1" BOOST_LIB_PATH="/usr/local/opt/boost@1.60/lib" \
+  BOOST_INCLUDE_PATH="/usr/local/opt/boost@1.60/include" \
+  OPENSSL_INCLUDE_PATH="/usr/local/opt/openssl/include" \
+  OPENSSL_LIB_PATH="/usr/local/opt/openssl/lib" \
+  BDB_INCLUDE_PATH="/usr/local/opt/berkeley-db@4/include" \
+  BDB_LIB_PATH="/usr/local/opt/berkeley-db@4/lib" \
+  MINIUPNPC_INCLUDE_PATH="/usr/local/opt/miniupnpc/include" \
+  MINIUPNPC_LIB_PATH="/usr/local/opt/miniupnpc/lib" \
+  SODIUM_LIB_PATH="/usr/local/opt/libsodium/lib"
+
+# --------------------
+# Build the QT App
+# --------------------
+make
+if [ $? -ne 0 ]; then
+    echo "An error occurred compiling the QT App. Please check the output and fix any issues."
+    exit -1
+fi
+
+pushd src
+make -f makefile.osx
+
+if [ $? -ne 0 ]; then
+    echo "An error occurred compiling bitcurrencyd. Please check the output and fix any issues."
+    popd
+    exit -1
+fi
+popd
+
+# --------------------
+# Package the app
+# --------------------
+mkdir -p ./tmp/macosxdist
+cp -R BitCurrency-Qt.app ./tmp/macosxdist/
+cp src/bitcurrencyd ./tmp/macosxdist/
+hdiutil create ./tmp/tmp.dmg -ov -volname "BitCurrency-OSX" -fs HFS+ -srcfolder ./tmp/macosxdist
+hdiutil convert ./tmp/tmp.dmg -format UDZO -o ./tmp/BitCurrency.dmg
+mv ./tmp/BitCurrency.dmg ./
+rm -rf ./tmp
+
+# --------------------
+# Done
+# --------------------
+echo "We are done!"
