@@ -1,0 +1,139 @@
+#!/bin/bash
+
+CORES=`cat /proc/cpuinfo | grep -i "model" | wc -l`
+
+#if [[ -e '../bitcurrency' || -e "../../bitcurrency" ]]; then
+#  echo "Move this script to a directory outside of and far away from the bitcurrency code base, then run it."
+#  exit -1
+#fi
+
+
+BUILD_THREADS=$3 || $CORES
+CUR_DIR=`pwd`
+ARCH="$2"
+BC_DIR="$CUR_DIR/bitcurrency"
+ARCH_NAME='x86_64-linux-gnu'
+HOST_ARCH='x86_64';
+
+if [ "$ARCH" == "32" ]; then
+  ARCH_NAME='i686-linux-gnu'
+  HOST_ARCH='i686'
+fi
+
+
+function doexec() {
+  cmd=$1
+  execpath=`pwd`
+  output=`${cmd}`
+
+  echo "     In: $execpath"
+  echo "Running: $cmd"
+  if [ $? -ne 0 ]; then
+    echo "======================================================================="
+    echo " Where: $execpath"
+    echo "Failed: $cmd"
+    echo "Output logged to fail.log"
+    echo "$output" > fail.log
+    echo "---------------- Last 10 lines ---------------------------------------"
+    echo `tail -n 10 fail.log`
+    exit -1
+  fi
+
+  echo "Success!"
+  echo "======================================================================="
+
+}
+
+
+# Make output directories
+if [ ! -d dist ]; then
+  mkdir -p ./dist/{windows,linux,osx}
+fi
+
+if [ "$EUID" -eq 0 ]; then
+	sudo apt-get install -y qt5-default qt5-qmake qtbase5-dev-tools qttools5-dev-tools \
+	    build-essential git libboost-dev libboost-system-dev \
+	    libboost-all-dev libssl-dev libdb++-dev libminiupnpc-dev libqrencode-dev \
+	    autoconf automake autopoint bison flex gperf intltool libtool-bin \
+	    ruby scons unzip p7zip-full libgdk-pixbuf2.0-dev libsodium-dev
+fi
+
+
+# Get BC from github if we don't already have it
+if [ ! -d "${CUR_DIR}/bitcurrency" ]; then
+  echo "Getting bitcurrency code from github..."
+  git clone https://github.com/bitcurrency/bitcurrency
+fi
+
+# remove dependency build dirs
+rm -rf db-4.8.30* miniupnpc-1.9* openssl-1.0.1f*
+
+# copy the dependency files
+cp bitcurrency/depends/* ./
+
+# unpack em
+tar xfvz db-4.8.30.NC.tar.gz
+tar xfvz miniupnpc-1.9.tar.gz
+tar xfvz openssl-1.0.1f.tar.gz
+
+echo '==============================================================================='
+echo ">> Building ${HOST_ARCH}"
+echo '==============================================================================='
+
+# build db
+pushd db-4.8.30.NC/build_unix
+# build linux
+../dist/configure --disable-replication --enable-cxx --host "${HOST_ARCH}" --prefix=/usr/
+#make clean
+make -j ${BUILD_THREADS}
+popd
+
+# build miniupnp
+pushd miniupnpc-1.9
+export set CFLAGS="-DSTATICLIB"
+make -j ${BUILD_THREADS} clean libminiupnpc.a
+popd
+
+# build openssl
+pushd openssl-1.0.1f
+./config no-dso enable-sha56 -DSTATICLIB \
+        -DLDFLAGS="-L/usr/${ARCH_NAME}/lib" \
+        -DCXXFLAGS="-masm=intel -ggdb -O3 -fPIC -march=native -mno-avx" \
+        -I/usr/${ARCH_NAME}/include -I/usr/include
+#make clean
+make -j ${BUILD_THREADS}
+popd
+
+LPATH=`realpath ./openssl-1.0.1f`
+
+# Build the client
+#pushd bitcurrency
+pushd btcrzed
+chmod a+x src/leveldb/build_detect_platform
+
+pushd src
+CXXFLAGS="-L${LPATH} -L/usr/${ARCH_NAME}/ -I${LPATH} -I${LPATH}/include" make -f makefile.unix -j ${BUILD_THREADS}
+popd
+
+CXXFLAGS="-L${LPATH} -L/usr/${ARCH_NAME}/ -I${LPATH} -I${LPATH}/include" \
+  qmake USE_UPNP=1 OPENSSL_ROOT_DIR="$LPATH" \
+    OPENSSL_LIB_PATH="$LPATH" \
+    OPENSSL_INCLUDE_PATH="$LPATH/include"
+make -j ${BUILD_THREADS}
+popd
+
+if [ -f ./bitcurrency/bitcurrency-qt ]; then
+  cp ./bitcurrency/bitcurrency-qt ./dist/linux/bitcurrency-qt5
+  strip -g -S -d --strip-debug ./dist/linux/bitcurrency-qt5
+  echo "bitcurrency-qt binary for linux is in ./dist/linux/"
+fi
+
+if [ -f ./bitcurrency/src/bitcurrencyd ]; then
+  cp ./bitcurrency/src/bitcurrencyd ./dist/linux/bitcurrencyd
+  strip -g -S -d --strip-debug ./dist/linux/bitcurrencyd
+  echo "bitcurrencyd binary for linux is in ./dist/linux/"
+fi
+
+echo "-----------------------------------------------"
+echo Done!
+echo "-----------------------------------------------"

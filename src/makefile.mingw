@@ -16,7 +16,7 @@ LIBPATHS= \
  -L"C:\openssl-1.0.1c-mgw"
 
 LIBS= \
- -l sodium
+ -l sodium \
  -l boost_system-mgw44-mt-1_53 \
  -l boost_filesystem-mgw44-mt-1_53 \
  -l boost_program_options-mgw44-mt-1_53 \

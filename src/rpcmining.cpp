@@ -45,7 +45,7 @@ Value getsubsidy(const Array& params, bool fHelp)
         throw runtime_error(
             "getsubsidy [nTarget]\n"
             "Returns proof-of-work subsidy value for the specified value of target.");
-    
+
     int nShowHeight;
     if (params.size() > 0)
         nShowHeight = atoi(params[0].get_str());
@@ -703,4 +703,3 @@ Value submitblock(const Array& params, bool fHelp)
 
     return Value::null;
 }
-

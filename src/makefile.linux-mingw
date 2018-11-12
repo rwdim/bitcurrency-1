@@ -2,21 +2,22 @@
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-TARGET_PLATFORM:=i686
-#TARGET_PLATFORM:=x86_64
+#TARGET_PLATFORM:=i686
+TARGET_PLATFORM:=x86_64
 
-DEPSDIR:=/usr/$(TARGET_PLATFORM)-w64-mingw32
+DEPSDIR:=$(DEPS_BASE)/usr/$(TARGET_PLATFORM)-w64-mingw32
 CC:=$(TARGET_PLATFORM)-w64-mingw32-gcc
 CXX:=$(TARGET_PLATFORM)-w64-mingw32-g++
 RANLIB=$(TARGET_PLATFORM)-w64-mingw32-ranlib
 STRIP=$(TARGET_PLATFORM)-w64-mingw32-strip
 
-USE_UPNP:=0
+USE_UPNP:=1
 USE_WALLET:=1
 
 INCLUDEPATHS= \
  -I"$(CURDIR)" \
  -I"$(CURDIR)"/obj \
+ -I"$(DEPSDIR)/usr/$(TARGET_PLATFORM)-w64-mingw32.static/include" \
  -I"$(DEPSDIR)/boost_1_55_0" \
  -I"$(DEPSDIR)/db-6.0.20/build_unix" \
  -I"$(DEPSDIR)/openssl-1.0.1f/include" \
@@ -28,7 +29,7 @@ LIBPATHS= \
  -L"$(DEPSDIR)/openssl-1.0.1f"
 
 LIBS= \
- -l sodium
+ -l sodium \
  -l boost_system-mt \
  -l boost_filesystem-mt \
  -l boost_program_options-mt \

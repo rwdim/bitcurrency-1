@@ -13,9 +13,19 @@ graphical user interface.
 WINDOWS BUILD NOTES
 ===================
 
+This build system is just like all the other build systems for this kind of
+wallet, and uses Linux to build for everything except Mac OSX.
+
+To build in linux, you'll need Ubuntu 16.04 or newer 64-bit with at least 4GB of
+RAM and 2GB of disk space.
+
 Compilers Supported
 -------------------
-TODO: What works?
+g++-mingw-w64-i686
+g++-mingw-w64-x86-64
+gcc-mingw-w64-i686 is
+gcc-mingw-w64-x86-64 is
+
 Note: releases are cross-compiled using mingw running on Linux.
 
 
@@ -23,11 +33,15 @@ Dependencies
 ------------
 Libraries you need to download separately and build:
 
-                default path               download
-OpenSSL         \openssl-1.0.1b-mgw        http://www.openssl.org/source/
-Berkeley DB     \db-4.8.30.NC-mgw          http://www.oracle.com/technology/software/products/berkeley-db/index.html
-Boost           \boost-1.47.0-mgw          http://www.boost.org/users/download/
-miniupnpc       \miniupnpc-1.6-mgw         http://miniupnp.tuxfamily.org/files/
+None. All the libraries are built inside MinGW for you when you run the build
+script.
+
+That said, the libraries we specifically use are all located in the depends folder:
+
+OpenSSL 1.0.1f
+Berkeley DB 4.8.30.NC 	(Non-Crypto version)	   
+Boost 1.60.1		\boost-1.47.0-mgw          
+miniupnpc       	\miniupnpc-1.8-mgw         
 
 Their licenses:
 OpenSSL        Old BSD license with the problematic advertising requirement
@@ -36,10 +50,10 @@ Boost          MIT-like license
 miniupnpc      New (3-clause) BSD license
 
 Versions used in this release:
-OpenSSL      1.0.1b
-Berkeley DB  4.8.30.NC
-Boost        1.47.0
-miniupnpc    1.6
+OpenSSL      1.0.1f
+Berkeley DB  4.8.40.NC
+Boost        1.65.1
+miniupnpc    1.9
 
 
 OpenSSL

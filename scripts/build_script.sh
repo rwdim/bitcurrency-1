@@ -1,5 +1,7 @@
 #!/bin/bash
 
+CORES=`cat /proc/cpuinfo | grep -i "model" | wc -l`
+
 #if [[ -e '../bitcurrency' || -e "../../bitcurrency" ]]; then
 #  echo "Move this script to a directory outside of and far away from the bitcurrency code base, then run it."
 #  exit -1
@@ -49,7 +51,7 @@ if [ ! -d "$MXE_PATH" ]; then
   fi
 
   pushd "$MXE_PATH"
-  nice make MXE_PLUGIN_DIRS="plugins/examples/openssl1.0" MXE_TARGETS='x86_64-w64-mingw32.static i686-w64-mingw32.static' boost qttools libsodium -j 16
+  nice make MXE_PLUGIN_DIRS="plugins/examples/openssl1.0" MXE_TARGETS='x86_64-w64-mingw32.static i686-w64-mingw32.static' boost qttools libsodium -j $CORES
   popd
 
 fi
@@ -81,6 +83,12 @@ tar xfvz openssl1.0.0t.tar.gz
 
   # build db
   pushd db-4.8.30
+
+  # build linux
+  cd build_unix
+	export PATH=../mxe/:/usr/bin/:${PATH};CC=i686-pc-mingw32-gcc CXX=i686-pc-mingw32-g++ ../dist/configure --disable-replication --enable-mingw --enable-cxx --host x86_64 --prefix=../mxe/usr/i686-pc-mingw32  
+
+
   mkdir -p build_mxe
   cd build_mxe
   cp ../../bitcurrency/scripts/build_db.sh ./build

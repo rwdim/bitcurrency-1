@@ -1,13 +1,29 @@
 #!/bin/bash
 
+CORES=`cat /proc/cpuinfo | grep -i "model" | wc -l`
+
 ORIG_PATH="$PATH"
 MXE_PATH="$1"
+ARCH="$2"
 
-if [ "$2" == "64" ]; then
-  export PATH="$MXE_PATH/usr/bin/:$ORIG_PATH";CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ ../dist/configure --disable-replication --enable-mingw --enable-cxx --host x86_64 --prefix=$MXE_PATH/usr/x86_64-w64-mingw32.static
+sed -i "s/WinIoCtl.h/winioctl.h/g" src/dbinc/win_db.h
+mkdir build_mxe
+cd build_mxe
+
+if [ "$ARCH" == "64" ]; then
+  PLAT="x86_64"
 else
-  export PATH="$MXE_PATH/usr/bin/:${ORIG_PATH}";CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ ../dist/configure --disable-replication --enable-mingw --enable-cxx --host i686 --prefix=$MXE_PATH/usr/i686-w64-mingw32.static
+  PLAT="i686"
 fi
 
-make clean && make -j 8
+CC=$MXE_PATH/usr/bin/$PLAT-w64-mingw32.static-gcc \
+CXX=$MXE_PATH/usr/bin/$PLAT-w64-mingw32.static-g++ \
+../dist/configure \
+        --disable-replication \
+        --enable-mingw \
+        --enable-cxx \
+        --host x86 \
+        --prefix=$MXE_PATH/usr/$PLAT-w64-mingw32.static
+
+make clean && make -j $CORES
 make install

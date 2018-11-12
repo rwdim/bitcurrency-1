@@ -9,8 +9,18 @@
 #include "main.h"
 #include "wallet.h"
 
+enum BlockType {
+  ProofOfWork,
+  ProofOfStake,
+  CoinOffer,
+  CoinSale
+};
+
 /* Generate a new block, without valid proof-of-work */
 CBlock* CreateNewBlock(CReserveKey& reservekey, bool fProofOfStake=false, int64_t* pFees = 0);
+
+/* Generate a new block, without valid proof-of-work */
+CBlock* CreateNewTypedBlock(CReserveKey& reservekey, BlockType blockType=ProofOfWork, int64_t* pFees = 0);
 
 /** Modify the extranonce in a block */
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce);

@@ -72,7 +72,7 @@ public:
 uint64_t nLastBlockTx = 0;
 uint64_t nLastBlockSize = 0;
 int64_t nLastCoinStakeSearchInterval = 0;
- 
+
 // We want to sort transactions by fee, so:
 typedef boost::tuple<double, CTransaction*> TxPriority;
 class TxPriorityCompare
@@ -86,6 +86,12 @@ public:
 
 // CreateNewBlock: create new block (without proof-of-work/proof-of-stake)
 CBlock* CreateNewBlock(CReserveKey& reservekey, bool fProofOfStake, int64_t* pFees)
+{
+    return CreateNewTypedBlock(reservekey, ((BlockType)(fProofOfStake) ? ProofOfStake : ProofOfWork), pFees);
+}
+
+// CreateNewBlock: create new block (without proof-of-work/proof-of-stake)
+CBlock* CreateNewTypedBlock(CReserveKey& reservekey, BlockType blockType, int64_t* pFees)
 {
     // Create new block
     auto_ptr<CBlock> pblock(new CBlock());
@@ -101,20 +107,25 @@ CBlock* CreateNewBlock(CReserveKey& reservekey, bool fProofOfStake, int64_t* pFe
     txNew.vin[0].prevout.SetNull();
     txNew.vout.resize(1);
 
-    if (!fProofOfStake)
-    {
-        CPubKey pubkey;
-        if (!reservekey.GetReservedKey(pubkey))
-            return NULL;
-        txNew.vout[0].scriptPubKey.SetDestination(pubkey.GetID());
-    }
-    else
-    {
-        // Height first in coinbase required for block.version=2
-        txNew.vin[0].scriptSig = (CScript() << nHeight) + COINBASE_FLAGS;
-        assert(txNew.vin[0].scriptSig.size() <= 100);
+    switch(blockType) {
+        case ProofOfWork:
+        {
+            CPubKey pubkey;
+            if (!reservekey.GetReservedKey(pubkey))
+                return NULL;
+            txNew.vout[0].scriptPubKey.SetDestination(pubkey.GetID());
+        }
+        break;
 
-        txNew.vout[0].SetEmpty();
+        case ProofOfStake:
+        {
+            // Height first in coinbase required for block.version=2
+            txNew.vin[0].scriptSig = (CScript() << nHeight) + COINBASE_FLAGS;
+            assert(txNew.vin[0].scriptSig.size() <= 100);
+
+            txNew.vout[0].SetEmpty();
+        }
+        break;
     }
 
     // Add our coinbase tx as first transaction
@@ -139,7 +150,7 @@ CBlock* CreateNewBlock(CReserveKey& reservekey, bool fProofOfStake, int64_t* pFe
     if (mapArgs.count("-mintxfee"))
         ParseMoney(mapArgs["-mintxfee"], nMinTxFee);
 
-    pblock->nBits = GetNextTargetRequired(pindexPrev, fProofOfStake);
+    pblock->nBits = GetNextTargetRequired(pindexPrev, (blockType == ProofOfStake));
 
     // Collect memory pool transactions into the block
     int64_t nFees = 0;
@@ -245,7 +256,7 @@ CBlock* CreateNewBlock(CReserveKey& reservekey, bool fProofOfStake, int64_t* pFe
                 continue;
 
             // Timestamp limit
-            if (tx.nTime > GetAdjustedTime() || (fProofOfStake && tx.nTime > pblock->vtx[0].nTime))
+            if (tx.nTime > GetAdjustedTime() || ((blockType == ProofOfStake) && tx.nTime > pblock->vtx[0].nTime))
                 continue;
 
             // Transaction fee
@@ -317,7 +328,7 @@ CBlock* CreateNewBlock(CReserveKey& reservekey, bool fProofOfStake, int64_t* pFe
         if (fDebug && GetBoolArg("-printpriority", false))
             LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
 
-        if (!fProofOfStake)
+        if (blockType == ProofOfWork)
             pblock->vtx[0].vout[0].nValue = GetProofOfWorkReward(nHeight, nFees);
 
         if (pFees)
@@ -326,7 +337,7 @@ CBlock* CreateNewBlock(CReserveKey& reservekey, bool fProofOfStake, int64_t* pFe
         // Fill in header
         pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
         pblock->nTime          = max(pindexPrev->GetPastTimeLimit()+1, pblock->GetMaxTransactionTime());
-        if (!fProofOfStake)
+        if (blockType == ProofOfWork)
             pblock->UpdateTime(pindexPrev);
         pblock->nNonce         = 0;
     }
